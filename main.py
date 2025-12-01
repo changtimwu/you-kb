@@ -18,6 +18,7 @@ def main():
         print(f"\n--- Found {len(videos)} videos ---")
         for v in videos:
             print(f"Title: {v['title']}")
+            print(f"URL: {v['url']}")
             print(f"Duration: {v['duration']}s")
             print(f"Subtitles: {', '.join(v['subtitles']) if v['subtitles'] else 'None'}")
             print(f"Auto-Subtitles: {', '.join(v['auto_subtitles']) if v['auto_subtitles'] else 'None'}")
