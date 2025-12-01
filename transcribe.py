@@ -57,7 +57,8 @@ def transcribe_audio(audio_path, api_key, model_name="gemini-2.5-flash-preview-0
     model = genai.GenerativeModel(model_name)
     
     try:
-        result = model.generate_content([myfile, "Generate a transcript of this audio."])
+        prompt = "Generate a transcript of this audio in WebVTT format. The output must start with 'WEBVTT'. Timestamps must be in 'HH:MM:SS.mmm' format and start from 00:00:00.000."
+        result = model.generate_content([myfile, prompt])
         return result.text
     except Exception as e:
         print(f"Error generating content: {e}")
@@ -76,10 +77,21 @@ if __name__ == "__main__":
                 transcript = transcribe_audio(audio_file, api_key, model_name="gemini-2.5-flash-preview-09-2025")
                 if transcript:
                     print("\n--- Transcript ---\n")
-                    print(transcript)
+                    # print(transcript) # Don't print the whole VTT to console, it's long
+                    print(transcript[:500] + "...")
                     
                     # Save transcript
-                    transcript_file = audio_file.replace('.m4a', '.txt')
+                    # Clean up markdown code blocks if present
+                    if transcript.startswith("```vtt"):
+                        transcript = transcript[6:]
+                    elif transcript.startswith("```"):
+                        transcript = transcript[3:]
+                    if transcript.endswith("```"):
+                        transcript = transcript[:-3]
+                    
+                    transcript = transcript.strip()
+                    
+                    transcript_file = audio_file.replace('.m4a', '.vtt')
                     with open(transcript_file, 'w') as f:
                         f.write(transcript)
                     print(f"\nTranscript saved to {transcript_file}")
