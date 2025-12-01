@@ -57,91 +57,59 @@ def main():
     
     # Check if we need to fallback to transcription for a single video
     if result and result.get('type') == 'video' and not result.get('downloaded'):
-        print("\n--- No subtitles found. Attempting transcription with Gemini... ---")
-        
-        try:
-            from transcribe import get_api_key, download_audio, transcribe_audio
-            
-            api_key = get_api_key()
-            if not api_key:
-                print("Skipping transcription: No API key found in myapikey.txt")
-                return
-
-            # Download audio
-            # Use the same output directory
-            audio_file = download_audio(args.url, args.output)
-            
-            if audio_file and os.path.exists(audio_file):
-                print(f"Audio downloaded to: {audio_file}")
-                
-                # Transcribe
-                transcript = transcribe_audio(audio_file, api_key)
-                
-                if transcript:
-                    # Save as VTT
-                    # Clean up markdown code blocks if present (just in case, though transcribe.py might handle it, 
-                    # but transcribe.py's main block handles it, not the function itself? 
-                    # Let's check transcribe.py's transcribe_audio function. 
-                    # It returns result.text directly. The cleaning was in the main block of transcribe.py.
-                    # So we should clean it here or move cleaning to transcribe_audio.
-                    # For now, let's clean it here to be safe.
-                    
-                    if transcript.startswith("```vtt"):
-                        transcript = transcript[6:]
-                    elif transcript.startswith("```"):
-                        transcript = transcript[3:]
-                    if transcript.endswith("```"):
-                        transcript = transcript[:-3]
-                    transcript = transcript.strip()
-
-                    # Construct output filename
-                    # We want it to match the structure: output_dir/uploader/title.vtt
-                    # But download_audio returns a path like output_dir/id.m4a
-                    # We can use the info from result['info'] to get title and uploader
-                    
-                    info = result.get('info', {})
-                    title = info.get('title', 'Unknown')
-                    uploader = info.get('uploader', 'Unknown')
-                    
-                    # Sanitize filenames (simple version)
-                    def sanitize(name):
-                        return "".join([c for c in name if c.isalpha() or c.isdigit() or c in (' ', '-', '_')]).rstrip()
-                    
-                    # yt-dlp sanitization is more complex, but let's try to respect the output structure
-                    # downloader.py uses: os.path.join(output_dir, '%(uploader)s', '%(title)s.%(ext)s')
-                    
-                    # For simplicity, let's save it alongside the audio file first, then try to move it?
-                    # Or just save it where the user expects.
-                    
-                    # Let's try to match the folder structure created by downloader.py
-                    # If downloader.py created the folder, it might be there.
-                    # But since download failed, maybe the folder wasn't created?
-                    # yt-dlp usually creates directories.
-                    
-                    # Let's just save it as [VideoID].vtt in the output folder for now to be safe and consistent with the audio file,
-                    # OR try to use the title if possible.
-                    
-                    # Actually, the user might prefer the same structure.
-                    # Let's stick to the audio file's name but with .vtt extension, 
-                    # which is what transcribe.py did in its main block.
-                    
-                    vtt_path = audio_file.replace('.m4a', '.vtt').replace('.mp4', '.vtt')
-                    
-                    with open(vtt_path, 'w') as f:
-                        f.write(transcript)
-                    print(f"Transcript saved to: {vtt_path}")
-                    
-                else:
-                    print("Transcription failed.")
-            else:
-                print("Audio download failed.")
-                
-        except ImportError:
-            print("Error: Could not import transcribe module. Make sure transcribe.py is in the directory.")
-        except Exception as e:
-            print(f"An error occurred during transcription: {e}")
+        process_transcription_fallback(args.url, args.output, result)
 
     print("Done.")
+
+def process_transcription_fallback(url, output_dir, result):
+    print("\n--- No subtitles found. Attempting transcription with Gemini... ---")
+    
+    try:
+        from transcribe import get_api_key, download_audio, transcribe_audio
+        
+        api_key = get_api_key()
+        if not api_key:
+            print("Skipping transcription: No API key found in myapikey.txt")
+            return
+
+        # Download audio
+        # Use the same output directory
+        audio_file = download_audio(url, output_dir)
+        
+        if audio_file and os.path.exists(audio_file):
+            print(f"Audio downloaded to: {audio_file}")
+            
+            # Transcribe
+            transcript = transcribe_audio(audio_file, api_key)
+            
+            if transcript:
+                # Save as VTT
+                # Clean up markdown code blocks if present
+                if transcript.startswith("```vtt"):
+                    transcript = transcript[6:]
+                elif transcript.startswith("```"):
+                    transcript = transcript[3:]
+                if transcript.endswith("```"):
+                    transcript = transcript[:-3]
+                transcript = transcript.strip()
+
+                # Construct output filename
+                # Let's stick to the audio file's name but with .vtt extension
+                vtt_path = audio_file.replace('.m4a', '.vtt').replace('.mp4', '.vtt')
+                
+                with open(vtt_path, 'w') as f:
+                    f.write(transcript)
+                print(f"Transcript saved to: {vtt_path}")
+                
+            else:
+                print("Transcription failed.")
+        else:
+            print("Audio download failed.")
+            
+    except ImportError:
+        print("Error: Could not import transcribe module. Make sure transcribe.py is in the directory.")
+    except Exception as e:
+        print(f"An error occurred during transcription: {e}")
 
 if __name__ == "__main__":
     main()
