@@ -32,15 +32,28 @@ def download_subtitles(url, output_dir, lang='en'):
             # If it's a playlist or channel, info will have 'entries'
             if 'entries' in info:
                 print(f"Found playlist/channel: {info.get('title', 'Unknown')}")
-                # We can just let download=True (which is actually extract_info with download=True by default, 
-                # but we set skip_download=True in opts) handle the iteration.
                 ydl.download([url])
+                return {'type': 'playlist'}
             else:
                 print(f"Found video: {info.get('title', 'Unknown')}")
-                ydl.download([url])
+                
+                # Check if subtitles exist for the requested language
+                has_subs = False
+                if 'subtitles' in info and lang in info['subtitles']:
+                    has_subs = True
+                elif 'automatic_captions' in info and lang in info['automatic_captions']:
+                    has_subs = True
+                
+                if has_subs:
+                    ydl.download([url])
+                    return {'type': 'video', 'downloaded': True, 'info': info}
+                else:
+                    print(f"No subtitles found for language '{lang}'.")
+                    return {'type': 'video', 'downloaded': False, 'info': info}
                 
         except Exception as e:
             print(f"Error processing URL {url}: {e}")
+            return {'type': 'error', 'error': str(e)}
 
 def _get_video_info(url):
     """
