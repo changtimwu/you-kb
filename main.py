@@ -45,6 +45,7 @@ def main():
         print("=" * 60)
         
         # Interactive prompt
+        # Interactive prompt
         if total_videos > 0:
             response = input("\nDo you want to download subtitles for all these videos? (y/n): ").strip().lower()
             if response == 'y':
@@ -52,17 +53,25 @@ def main():
                 if not os.path.exists(args.output):
                     os.makedirs(args.output)
                 
-                for i, v in enumerate(videos):
-                    print(f"\nProcessing {i+1}/{total_videos}: {v['title']}")
-                    # Use the URL from the video info
-                    v_url = v['url']
+                import concurrent.futures
+                
+                # Define worker function
+                def process_single_video(video_data):
+                    v_title = video_data.get('title', 'Unknown')
+                    v_url = video_data.get('url')
+                    print(f"Processing: {v_title}")
                     
                     # Download subtitles
-                    result = download_subtitles(v_url, args.output, args.lang)
+                    res = download_subtitles(v_url, args.output, args.lang)
                     
                     # Check for fallback
-                    if result and result.get('type') == 'video' and not result.get('downloaded'):
-                        process_transcription_fallback(v_url, args.output, result)
+                    if res and res.get('type') == 'video' and not res.get('downloaded'):
+                        process_transcription_fallback(v_url, args.output, res)
+                
+                # Run in parallel
+                with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                    futures = [executor.submit(process_single_video, v) for v in videos]
+                    concurrent.futures.wait(futures)
         return
 
     # Create output directory if it doesn't exist
