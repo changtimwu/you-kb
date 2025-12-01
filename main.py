@@ -43,6 +43,26 @@ def main():
         print(f"Average duration:              {int(avg_duration//60)}m {int(avg_duration%60)}s ({avg_duration:.0f}s)")
         print(f"Total duration:                {int(total_duration//3600)}h {int((total_duration%3600)//60)}m ({total_duration:.0f}s)")
         print("=" * 60)
+        
+        # Interactive prompt
+        if total_videos > 0:
+            response = input("\nDo you want to download subtitles for all these videos? (y/n): ").strip().lower()
+            if response == 'y':
+                print("\nStarting batch download...")
+                if not os.path.exists(args.output):
+                    os.makedirs(args.output)
+                
+                for i, v in enumerate(videos):
+                    print(f"\nProcessing {i+1}/{total_videos}: {v['title']}")
+                    # Use the URL from the video info
+                    v_url = v['url']
+                    
+                    # Download subtitles
+                    result = download_subtitles(v_url, args.output, args.lang)
+                    
+                    # Check for fallback
+                    if result and result.get('type') == 'video' and not result.get('downloaded'):
+                        process_transcription_fallback(v_url, args.output, result)
         return
 
     # Create output directory if it doesn't exist
