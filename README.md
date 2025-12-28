@@ -32,6 +32,17 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+### Dev Container (Recommended)
+
+This project includes a `.devcontainer` configuration for VS Code. This is the recommended way to develop as it:
+- Automatically installs **ffmpeg** (required for audio extraction).
+- Sets up the Python environment and installs all dependencies.
+- Configures VS Code extensions for Python and linting.
+
+**To use it:**
+1. Install the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension in VS Code.
+2. Click **Reopen in Container** when prompted, or run `Dev Containers: Reopen in Container` from the Command Palette.
+
 ## Usage
 
 ### List Videos and Check Subtitle Availability

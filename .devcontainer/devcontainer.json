@@ -1,0 +1,17 @@
+{
+	"name": "you-kb development",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"charliermarsh.ruff"
+			]
+		}
+	},
+	"postCreateCommand": "pip install --user -r requirements.txt",
+	"remoteUser": "vscode"
+}
