@@ -11,10 +11,12 @@ Transform any YouTube video, playlist, or channel into a local searchable knowle
 - 📥 **Bulk Downloader**: Efficiently fetch subtitles from individual videos, playlists, or entire channels.
 - ⚡ **Parallel Processing**: High-performance metadata extraction and batch downloads using parallel workers.
 - 📊 **Insightful Stats**: Real-time progress bars and detailed statistics on subtitle availability and video durations.
+- 🌐 **Interactive Web UI**: Modern FastAPI-based web interface with chat and a synchronized YouTube player.
 
 ## Feature List
 - ✅ Semantic search and chat via LanceDB & Gemini
 - ✅ Automatic YouTube timestamp link generation
+- ✅ Interactive Web UI with auto-seeking YouTube player
 - ✅ Gemini-powered audio-to-text transcription
 - ✅ Support for playlists and channels (600+ videos tested)
 - ✅ Multiple language support
@@ -93,7 +95,17 @@ Ask questions and get answers with direct YouTube timestamp citations.
 python3 main.py --chat my_kb
 ```
 
-### 3. End-to-End Example
+### 3. The Interactive Web UI
+
+Experience a modern chat interface with a synchronized YouTube player that automatically seeks to the cited video segments.
+
+**Start the Web Server:**
+```bash
+python3 app.py
+```
+Then open your browser at [http://localhost:8000](http://localhost:8000).
+
+### 4. End-to-End Example
 
 ```bash
 # 1. Download & Transcribe 3 videos from a playlist

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>You-KB | AI Video Knowledge Base</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f1f5f9;
+            --accent-color: #38bdf8;
+            --accent-hover: #0ea5e9;
+            --sidebar-width: 260px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            height: 100 vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: #020617;
+            border-right: 1px solid #334155;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .logo {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: var(--accent-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .kb-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .kb-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            border: 1px solid transparent;
+        }
+
+        .kb-item:hover {
+            background-color: #1e293b;
+        }
+
+        .kb-item.active {
+            background-color: #1e293b;
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        /* Main Content */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Video Area (Fixed at top or side) */
+        .video-section {
+            background-color: #000;
+            height: 250px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+            flex-shrink: 0;
+        }
+
+        #player-placeholder {
+            color: #475569;
+            font-size: 0.9rem;
+        }
+
+        /* Chat Area */
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            scrollbar-width: thin;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 15px 20px;
+            border-radius: 12px;
+            line-height: 1.6;
+            font-size: 0.95rem;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background-color: var(--accent-color);
+            color: #000;
+            font-weight: 500;
+        }
+
+        .ai-message {
+            align-self: flex-start;
+            background-color: var(--card-bg);
+            border: 1px solid #334155;
+            white-space: pre-wrap;
+        }
+
+        .citation-link {
+            color: var(--accent-color);
+            text-decoration: underline;
+            cursor: pointer;
+            font-weight: 600;
+            margin: 0 2px;
+        }
+
+        .citation-link:hover {
+            color: var(--text-color);
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 20px 40px;
+            background-color: var(--bg-color);
+            border-top: 1px solid #334155;
+            display: flex;
+            gap: 15px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px 20px;
+            color: #fff;
+            outline: none;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent-color);
+        }
+
+        button#send-btn {
+            background-color: var(--accent-color);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            padding: 0 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button#send-btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        button#send-btn:disabled {
+            background-color: #475569;
+            cursor: not-allowed;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <span>🧠</span> You-KB
+        </div>
+        <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;">Knowledge Bases</div>
+        <div class="kb-list" id="kb-list">
+            <!-- Loaded via JS -->
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="video-section">
+            <div id="player"></div>
+            <div id="player-placeholder">Select a citation link to play video</div>
+        </div>
+        
+        <div class="chat-area" id="chat-area">
+            <div class="message ai-message">Welcome! Select a Knowledge Base on the left to start chatting about your videos.</div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="Ask something about the videos..." autocomplete="off">
+            <button id="send-btn">Send</button>
+        </div>
+    </div>
+
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+        let player;
+        let selectedKb = null;
+
+        // Load KB list
+        async function fetchKbs() {
+            const res = await fetch('/kbs');
+            const kbs = await res.json();
+            const list = document.getElementById('kb-list');
+            list.innerHTML = '';
+            kbs.forEach(kb => {
+                const div = document.createElement('div');
+                div.className = 'kb-item';
+                div.textContent = kb;
+                div.onclick = () => {
+                    document.querySelectorAll('.kb-item').forEach(el => el.classList.remove('active'));
+                    div.classList.add('active');
+                    selectedKb = kb;
+                };
+                list.appendChild(div);
+            });
+            if (kbs.length > 0) {
+                list.children[0].click();
+            }
+        }
+
+        // YT API Callback
+        function onYouTubeIframeAPIReady() {
+            // Player will be initialized when needed or with a default
+        }
+
+        function playVideo(videoId, startTime) {
+            document.getElementById('player-placeholder').style.display = 'none';
+            if (player) {
+                player.loadVideoById({
+                    videoId: videoId,
+                    startSeconds: startTime
+                });
+            } else {
+                player = new YT.Player('player', {
+                    height: '240',
+                    width: '426',
+                    videoId: videoId,
+                    playerVars: {
+                        'autoplay': 1,
+                        'start': startTime
+                    }
+                });
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const query = input.value.trim();
+            if (!query || !selectedKb) return;
+
+            // Add user message to UI
+            addMessage(query, 'user');
+            input.value = '';
+
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.disabled = true;
+
+            try {
+                const res = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ kb_name: selectedKb, query: query })
+                });
+                const data = await res.json();
+                
+                // Add AI message with processed citations
+                addMessage(data.response, 'ai', data.citations);
+            } catch (e) {
+                addMessage('Error: ' + e.message, 'ai');
+            } finally {
+                sendBtn.disabled = false;
+            }
+        }
+
+        function addMessage(text, type, citations = []) {
+            const container = document.getElementById('chat-area');
+            const div = document.createElement('div');
+            div.className = `message ${type}-message`;
+            
+            if (type === 'ai') {
+                // Process text to insert interactive citations
+                let html = text;
+                citations.forEach(cit => {
+                    const escapedRef = cit.ref.replace('[', '\\[').replace(']', '\\]');
+                    const regex = new RegExp(escapedRef, 'g');
+                    html = html.replace(regex, `<span class="citation-link" onclick="playVideo('${cit.video_id}', ${cit.time})">${cit.ref}</span>`);
+                });
+                div.innerHTML = html;
+            } else {
+                div.textContent = text;
+            }
+            
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        document.getElementById('send-btn').onclick = sendMessage;
+        document.getElementById('user-input').onkeypress = (e) => {
+            if (e.key === 'Enter') sendMessage();
+        };
+
+        fetchKbs();
+    </script>
+</body>
+</html>
