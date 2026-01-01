@@ -101,7 +101,19 @@ python main.py dummy_url --kb-create my_kb
 **Chat with the Knowledge Base:**
 Ask questions based on the accumulated transcripts.
 ```bash
-python main.py dummy_url --chat my_kb
+python main.py --chat my_kb
+```
+
+#### End-to-End Workflow Example (Playlist RAG)
+```bash
+# 1. Download & Transcribe (Automatic fallback to Gemini if subs missing)
+python3.11 main.py "https://youtube.com/playlist?list=PL45a1lc7-gwtTx8GMjo2odNJuk3kFdZwP" --limit 3
+
+# 2. Index transcripts into a Knowledge Base
+python3.11 main.py --kb-create my_playlist_kb
+
+# 3. Chat with the Knowledge Base (Includes YT timestamp links)
+python3.11 main.py --chat my_playlist_kb
 ```
 
 ## Command Line Options
