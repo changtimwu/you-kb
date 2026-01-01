@@ -11,7 +11,8 @@ A Python CLI tool to download subtitles from YouTube videos, playlists, and chan
 - 📉 Statistics summary showing subtitle availability and duration metrics
 - 🎯 Limit processing to a specific number of videos
 - 🌍 Support for multiple subtitle languages
-- 🔄 Automatic fallback to auto-generated subtitles
+- 🔄 Automatic fallback to AI transcription via Gemini
+- 🧠 **Retrieval-Augmented Generation (RAG)**: Create a knowledge base from transcripts and chat with your data using LanceDB and Gemini
 
 ## Installation
 
@@ -88,15 +89,29 @@ python main.py "https://www.youtube.com/watch?v=VIDEO_ID" --lang es
 python main.py "https://www.youtube.com/watch?v=VIDEO_ID" --output my_subtitles
 ```
 
+### Retrieval-Augmented Generation (RAG)
+
+**Create a Knowledge Base:**
+Index all `.vtt` files in your output directory (default: `downloads`) into a vector database.
+```bash
+python main.py dummy_url --kb-create my_kb
+```
+
+**Chat with the Knowledge Base:**
+Ask questions based on the accumulated transcripts.
+```bash
+python main.py dummy_url --chat my_kb
+```
+
 ## Command Line Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
 | `url` | YouTube video, playlist, or channel URL | Required |
 | `--list` | List videos and subtitle info without downloading | False |
 | `--limit N` | Limit number of videos to process | All videos |
 | `--lang LANG` | Subtitle language code (e.g., en, es, fr) | en |
-| `--output DIR` | Output directory for downloaded subtitles | downloads |
+| `--output DIR` | Output directory for downloads and KB source | downloads |
+| `--kb-create NAME` | Create/update a knowledge base from transcripts | None |
+| `--chat NAME` | Start a chat session with the specified KB | None |
 
 ## Statistics Output
 
@@ -142,6 +157,9 @@ downloads/
 
 - `yt-dlp` - YouTube video/subtitle extraction
 - `tqdm` - Progress bar display
+- `google-generativeai` - Gemini embeddings and text generation
+- `lancedb` - Vector database for RAG
+- `pandas` - Data handling for LanceDB
 
 ## Troubleshooting
 

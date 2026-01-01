@@ -1,3 +1,5 @@
 yt-dlp
 tqdm
 google-generativeai
+lancedb
+pandas

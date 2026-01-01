@@ -9,8 +9,29 @@ def main():
     parser.add_argument("--output", default="downloads", help="Output directory (default: downloads)")
     parser.add_argument("--list", action="store_true", help="List videos and their subtitle info without downloading")
     parser.add_argument("--limit", type=int, default=None, help="Limit number of videos to process (default: all)")
+    parser.add_argument("--kb-create", help="Create/update a knowledge base with the given name from downloaded transcripts")
+    parser.add_argument("--chat", help="Start a chat session with the specified knowledge base")
 
     args = parser.parse_args()
+
+    # RAG commands
+    if args.kb_create:
+        from rag import create_kb
+        create_kb(args.kb_create, args.output)
+        return
+
+    if args.chat:
+        from rag import chat_with_kb
+        print(f"--- Chatting with Knowledge Base: {args.chat} ---")
+        print("Type 'exit' or 'quit' to stop.")
+        while True:
+            query = input("\nYou: ")
+            if query.lower() in ['exit', 'quit']:
+                break
+            response, sources = chat_with_kb(args.chat, query)
+            print(f"\nAI: {response}")
+            print(f"\nSources: {', '.join(sources)}")
+        return
 
     if args.list:
         print(f"Listing videos for: {args.url}")

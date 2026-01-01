@@ -1,3 +1,11 @@
-venv
-downloads
-__pycache__
+venv/
+.venv/
+downloads/
+__pycache__/
+*.pyc
+.DS_Store
+.lancedb/
+myapikey.txt
+*.mp3
+*.m4a
+node_modules/

@@ -11,27 +11,27 @@ This document describes the high-level architecture and component interaction of
        |
        | Run Command
        v
-+---------------------------------------------------------------+
-|                           main.py                             |
-+-------+-----------------------------------------------+-------+
-        |                                               |
-        | 1. List/Download Info                         | 2. Fallback (No Subs)
-        v                                               v
-+-------+-------+                               +-------+-------+
-| downloader.py |                               | transcribe.py |
-+-------+-------+                               +-------+-------+
-        |                                               |
-        | Get Metadata & Subs                           | Get Audio / Generate VTT
-        v                                               v
-+-------+-------+                               +-------+-------+
-|    yt-dlp     |<------------------------------+   Gemini API  |
-+-------+-------+          (Get Audio)          +-------+-------+
-        |                                               |
-        | Save .vtt                                     | Save .vtt
-        v                                               v
-+-------+-----------------------------------------------+-------+
-|                     downloads/ directory                      |
-+---------------------------------------------------------------+
++-----------------------------------------------------------------------+
+|                               main.py                                 |
++-------+-------------------------------+-------+---------------+-------+
+        |                               |               |
+        | 1. List/Download              | 2. Fallback   | 3. RAG Chat
+        v                               v               v
++-------+-------+               +-------+-------+       +-------+-------+
+| downloader.py |               | transcribe.py |       |    rag.py     |
++-------+-------+               +-------+-------+       +-------+-------+
+        |                               |               |       ^
+        | Get Metadata & Subs           | Audio To VTT  | Index | Query
+        v                               v               v       |
++-------+-------+               +-------+-------+       +-------+-------+
+|    yt-dlp     |<--------------+   Gemini API  |<------+   LanceDB     |
++-------+-------+               +-------+-------+       +-------+-------+
+        |                               |                       ^
+        | Save .vtt                     | Save .vtt             |
+        v                               v                       |
++-------+-------------------------------+-----------------------+-------+
+|                     downloads/ directory                              |
++-----------------------------------------------------------------------+
 ```
 
 ## Component Breakdown
@@ -57,7 +57,14 @@ This document describes the high-level architecture and component interaction of
     - `transcribe_audio()`: Uploads audio to Google Generative AI (Gemini) and prompts it to generate a WebVTT formatted transcript.
     - Handles API key management via `myapikey.txt`.
 
-### 4. `research_subs.py` (Diagnostic Tool)
+### 4. `rag.py` (RAG Engine)
+- **Role:** Handles vector database indexing and semantic search.
+- **Key Responsibilities:**
+    - `create_kb()`: Parses `.vtt` files from `downloads/`, chunks them, and generates embeddings.
+    - `get_embedding()`: Interfaces with Gemini's `text-embedding-004`.
+    - `chat_with_kb()`: Performs similarity search in **LanceDB** and generates context-aware responses using Gemini.
+
+### 5. `research_subs.py` (Diagnostic Tool)
 - **Role:** A standalone utility for debugging.
 - **Key Responsibilities:**
     - Performs deep inspections of YouTube metadata structures to verify how `yt-dlp` sees subtitles and automatic captions.
@@ -68,4 +75,8 @@ This document describes the high-level architecture and component interaction of
 3. **Decision Point:**
     - If subtitles exist: Downloaded directly.
     - If subtitles missing: `main.py` triggers `transcribe.py` to download audio and request a transcript from Gemini.
-4. **Storage:** All results are stored in the `downloads/` directory, categorized by the uploader's channel name.
+4. **RAG Indexing:** `main.py --kb-create` triggers `rag.py` to index the `downloads/` directory into a LanceDB table.
+5. **RAG Chat:** `main.py --chat` allows the user to query the knowledge base. `rag.py` retrieves relevant chunks from LanceDB and sends them as context to Gemini.
+6. **Storage:**
+    - Transcripts (.vtt) are in `downloads/`.
+    - Vector data is in `.lancedb/`.
