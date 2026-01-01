@@ -36,7 +36,7 @@ def download_audio(url, output_dir='downloads'):
         final_path = os.path.join(output_dir, f"{video_id}.m4a")
         return final_path
 
-def transcribe_audio(audio_path, api_key, model_name="gemini-2.5-flash-preview-09-2025"):
+def transcribe_audio(audio_path, api_key, model_name="gemini-3-flash-preview"):
     genai.configure(api_key=api_key)
     
     print(f"Uploading {audio_path} to Gemini...")
@@ -74,7 +74,7 @@ if __name__ == "__main__":
             if audio_file and os.path.exists(audio_file):
                 print(f"Audio ready at {audio_file}")
                 # User mentioned "gemini 2.5 flash".
-                transcript = transcribe_audio(audio_file, api_key, model_name="gemini-2.5-flash-preview-09-2025")
+                transcript = transcribe_audio(audio_file, api_key, model_name="gemini-3-flash-preview")
                 if transcript:
                     print("\n--- Transcript ---\n")
                     # print(transcript) # Don't print the whole VTT to console, it's long
