@@ -13,6 +13,7 @@ A Python CLI tool to download subtitles from YouTube videos, playlists, and chan
 - 🌍 Support for multiple subtitle languages
 - 🔄 Automatic fallback to AI transcription via Gemini
 - 🧠 **Retrieval-Augmented Generation (RAG)**: Create a knowledge base from transcripts and chat with your data using LanceDB and Gemini
+- 🔗 **Smart Citations**: Chat responses include direct YouTube timestamp links to the relevant video segments
 
 ## Installation
 

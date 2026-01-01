@@ -4,7 +4,7 @@ from downloader import download_subtitles, list_videos
 
 def main():
     parser = argparse.ArgumentParser(description="Download subtitles from YouTube videos, playlists, or channels.")
-    parser.add_argument("url", help="YouTube video, playlist, or channel URL")
+    parser.add_argument("url", nargs="?", help="YouTube video, playlist, or channel URL")
     parser.add_argument("--lang", default="en", help="Subtitle language code (default: en)")
     parser.add_argument("--output", default="downloads", help="Output directory (default: downloads)")
     parser.add_argument("--list", action="store_true", help="List videos and their subtitle info without downloading")
@@ -32,6 +32,9 @@ def main():
             print(f"\nAI: {response}")
             print(f"\nSources: {', '.join(sources)}")
         return
+
+    if not args.url:
+        parser.error("A URL is required for listing or downloading subtitles.")
 
     if args.list:
         print(f"Listing videos for: {args.url}")

@@ -19,31 +19,82 @@ def get_embedding(text, model="models/text-embedding-004"):
     )
     return result['embedding']
 
+def vtt_timestamp_to_seconds(ts):
+    """Convert HH:MM:SS.mmm to total seconds."""
+    try:
+        parts = ts.split(':')
+        if len(parts) == 3:
+            h, m, s = parts
+            return int(h) * 3600 + int(m) * 60 + float(s)
+        elif len(parts) == 2:
+            m, s = parts
+            return int(m) * 60 + float(s)
+    except:
+        return 0
+    return 0
+
 def parse_vtt(vtt_path):
-    """Simple VTT parser to extract text content."""
+    """Parse VTT file into a list of dictionaries with text and start timestamp."""
     with open(vtt_path, 'r', encoding='utf-8') as f:
         content = f.read()
     
     # Remove WEBVTT header
     content = re.sub(r'^WEBVTT\n+', '', content)
     
-    # Remove timestamps and metadata
-    # Format: 00:00:00.000 --> 00:00:00.000
-    content = re.sub(r'\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}\n', '', content)
+    # Split by blocks (usually separated by empty lines)
+    blocks = content.split('\n\n')
+    entries = []
     
-    # Remove blank lines and join
-    lines = [line.strip() for line in content.split('\n') if line.strip()]
-    return " ".join(lines)
+    for block in blocks:
+        lines = [l.strip() for l in block.split('\n') if l.strip()]
+        if not lines:
+            continue
+            
+        # Check if first line is a timestamp
+        ts_match = re.match(r'(\d{1,2}:\d{2}:\d{2}\.\d{3}|\d{2}:\d{2}\.\d{3}) -->', lines[0])
+        if ts_match:
+            start_ts_str = ts_match.group(1)
+            seconds = vtt_timestamp_to_seconds(start_ts_str)
+            text = " ".join(lines[1:])
+            entries.append({"ts": seconds, "text": text})
+        elif len(lines) > 1 and re.match(r'(\d{1,2}:\d{2}:\d{2}\.\d{3}|\d{2}:\d{2}\.\d{3}) -->', lines[1]):
+            # Sometimes there's a sequence number before the timestamp
+            ts_match = re.match(r'(\d{1,2}:\d{2}:\d{2}\.\d{3}|\d{2}:\d{2}\.\d{3}) -->', lines[1])
+            start_ts_str = ts_match.group(1)
+            seconds = vtt_timestamp_to_seconds(start_ts_str)
+            text = " ".join(lines[2:])
+            entries.append({"ts": seconds, "text": text})
 
-def chunk_text(text, chunk_size=1000, overlap=200):
-    """Split text into overlapping chunks."""
+    return entries
+
+def chunk_entries(entries, chunk_size=1000, overlap_size=200):
+    """Group VTT entries into larger chunks."""
     chunks = []
-    start = 0
-    while start < len(text):
-        end = start + chunk_size
-        chunk = text[start:end]
-        chunks.append(chunk)
-        start += (chunk_size - overlap)
+    if not entries:
+        return chunks
+        
+    current_text = ""
+    current_start_ts = entries[0]['ts']
+    
+    for entry in entries:
+        if len(current_text) + len(entry['text']) > chunk_size:
+            chunks.append({
+                "text": current_text.strip(),
+                "ts": current_start_ts
+            })
+            # Start new chunk
+            # For simplicity, we don't do complex text overlap here to keep timestamps clean
+            current_text = entry['text'] + " "
+            current_start_ts = entry['ts']
+        else:
+            current_text += entry['text'] + " "
+            
+    if current_text:
+        chunks.append({
+            "text": current_text.strip(),
+            "ts": current_start_ts
+        })
+        
     return chunks
 
 def create_kb(kb_name, downloads_dir="downloads"):
@@ -57,25 +108,44 @@ def create_kb(kb_name, downloads_dir="downloads"):
         print(f"Directory {downloads_dir} not found.")
         return
 
-    vtt_files = [f for f in os.listdir(downloads_dir) if f.endswith('.vtt')]
+    # Find all VTT files recursively if needed, but for now just downloads_dir
+    vtt_files = []
+    for root, dirs, files in os.walk(downloads_dir):
+        for f in files:
+            if f.endswith('.vtt'):
+                vtt_files.append(os.path.join(root, f))
+
     if not vtt_files:
-        print("No .vtt files found in downloads directory.")
+        print("No .vtt files found.")
         return
 
     print(f"Indexing {len(vtt_files)} transcriptions...")
     
-    for vtt_file in vtt_files:
-        path = os.path.join(downloads_dir, vtt_file)
-        text = parse_vtt(path)
-        chunks = chunk_text(text)
+    for vtt_path in vtt_files:
+        filename = os.path.basename(vtt_path)
+        # Assuming filename is VIDEO_ID.vtt or Title-VIDEO_ID.en.vtt
+        # Standard yt-dlp might be different. Let's try to extract 11-char ID
+        video_id = ""
+        # Look for 11 char ID (common YT format)
+        id_match = re.search(r'([a-zA-Z0-9_-]{11})\.([a-z-]{2,5}\.)?vtt$', filename)
+        if id_match:
+            video_id = id_match.group(1)
+        else:
+            # Fallback: remove extension
+            video_id = os.path.splitext(filename)[0]
+
+        entries = parse_vtt(vtt_path)
+        chunks = chunk_entries(entries)
         
-        for i, chunk in enumerate(chunks):
-            print(f"Processing chunk {i+1}/{len(chunks)} for {vtt_file}...")
-            embedding = get_embedding(chunk)
+        print(f"Processing {len(chunks)} chunks for {filename}...")
+        for chunk in chunks:
+            embedding = get_embedding(chunk['text'])
             data.append({
                 "vector": embedding,
-                "text": chunk,
-                "source": vtt_file
+                "text": chunk['text'],
+                "video_id": video_id,
+                "ts": chunk['ts'],
+                "source": filename
             })
     
     # Create or overwrite table
@@ -87,13 +157,13 @@ def create_kb(kb_name, downloads_dir="downloads"):
     print(f"Knowledge base '{kb_name}' created successfully with {len(data)} chunks.")
 
 def chat_with_kb(kb_name, query):
-    """Search KB and generate response using Gemini."""
+    """Search KB and generate response with YouTube timestamp citations."""
     db_path = ".lancedb"
     db = lancedb.connect(db_path)
     
     if kb_name not in db.table_names():
         print(f"Knowledge base '{kb_name}' not found.")
-        return
+        return "KB not found", []
     
     table = db.open_table(kb_name)
     
@@ -102,23 +172,36 @@ def chat_with_kb(kb_name, query):
     
     # 2. Search LanceDB
     results = table.search(query_embedding).limit(5).to_pandas()
-    context = "\n\n".join(results['text'].tolist())
+    
+    # Construct context with unique identifiers for citations
+    context_lines = []
+    citations = []
+    
+    for i, row in results.iterrows():
+        video_id = row['video_id']
+        ts = int(row['ts'])
+        url = f"https://youtu.be/{video_id}?t={ts}"
+        ref_id = i + 1
+        context_lines.append(f"[{ref_id}] (Source: {url})\n{row['text']}")
+        citations.append(f"[{ref_id}] {url}")
+    
+    context = "\n\n".join(context_lines)
     
     # 3. Generate response
     model = genai.GenerativeModel("gemini-3-flash-preview")
     prompt = f"""
 You are a helpful assistant. Use the following pieces of context from YouTube transcripts to answer the user's question.
-If you don't know the answer based on the context, just say that you don't know. Don't try to make up an answer.
+Every time you use information from a context block, you MUST cite it using the format [N], where N is the reference number.
 
 Context:
 {context}
 
 Question: {query}
 
-Answer:
+Answer (including citations like [1], [2], etc.):
 """
     response = model.generate_content(prompt)
-    return response.text, results['source'].unique().tolist()
+    return response.text, citations
 
 if __name__ == "__main__":
     # Test
