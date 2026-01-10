@@ -23,11 +23,12 @@ python3 app.py
 # Command-line interface
 python3 main.py <URL> [options]
 
-# Create knowledge base from downloads
-python3 main.py --kb-create <kb_name>
-
-# Interactive chat with knowledge base
-python3 main.py --chat <kb_name>
+# Knowledge base management
+python3 main.py --kb-create <kb_name>                    # Create empty KB
+python3 main.py --digest <kb_name> --source <path>      # Add documents to KB
+python3 main.py --kb-list                                # List all KBs
+python3 main.py --kb-info <kb_name>                      # Show KB details
+python3 main.py --chat <kb_name>                          # Interactive chat
 ```
 
 ### Testing
@@ -37,7 +38,12 @@ python3 main.py --chat <kb_name>
 
 # Test individual components:
 python3 -c "from downloader import list_videos; print(list_videos('https://youtube.com/watch?v=TEST', limit=1))"
-python3 -c "from rag import create_kb; print('KB creation test passed')"
+python3 -c "from rag import create_kb, digest_documents; print('KB creation test passed')"
+
+# Test new digest functionality:
+python3 main.py --kb-create test_kb
+python3 main.py --digest test_kb --source test.txt --pattern "*.txt"
+python3 main.py --kb-list
 ```
 
 ### Linting & Code Quality

@@ -9,15 +9,40 @@ def main():
     parser.add_argument("--output", default="downloads", help="Output directory (default: downloads)")
     parser.add_argument("--list", action="store_true", help="List videos and their subtitle info without downloading")
     parser.add_argument("--limit", type=int, default=None, help="Limit number of videos to process (default: all)")
-    parser.add_argument("--kb-create", help="Create/update a knowledge base with the given name from downloaded transcripts")
+    # Knowledge base commands
+    parser.add_argument("--kb-create", help="Create empty knowledge base")
+    parser.add_argument("--digest", help="Digest documents into specified knowledge base")
+    parser.add_argument("--source", nargs="+", help="Source directories or files for digestion")
+    parser.add_argument("--pattern", nargs="+", 
+                       default=["*.vtt", "*.txt", "*.md"],
+                       help="File patterns to include (default: *.vtt *.txt *.md)")
+    parser.add_argument("--kb-list", action="store_true", help="List all knowledge bases")
+    parser.add_argument("--kb-info", help="Show details of specific knowledge base")
     parser.add_argument("--chat", help="Start a chat session with the specified knowledge base")
 
     args = parser.parse_args()
 
-    # RAG commands
+    # Knowledge base commands
     if args.kb_create:
         from rag import create_kb
-        create_kb(args.kb_create, args.output)
+        create_kb(args.kb_create)
+        return
+
+    if args.digest:
+        from rag import digest_documents
+        if not args.source:
+            parser.error("--digest requires --source specification")
+        result = digest_documents(args.digest, args.source, args.pattern)
+        return
+
+    if args.kb_list:
+        from rag import list_knowledge_bases
+        list_knowledge_bases()
+        return
+
+    if args.kb_info:
+        from rag import show_kb_details
+        show_kb_details(args.kb_info)
         return
 
     if args.chat:
